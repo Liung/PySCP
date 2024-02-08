@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/PySCP.iml" filepath="$PROJECT_DIR$/.idea/PySCP.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/pyscp.iml" filepath="$PROJECT_DIR$/.idea/pyscp.iml" />
     </modules>
   </component>
 </project>
