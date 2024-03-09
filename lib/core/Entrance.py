@@ -30,46 +30,46 @@ class PySCP:
 
         # 初始化结果变量
         self.result = Result()  # record results
-        self.RecordResult()
+        self.record_result()
 
     def solve(self, **kwargs):
-        """ main function to solve the multi-phase ocp """
-        maxiteration = self.setup['maxIteration']
-        for step in range(maxiteration):
+        """ main function to solve the multiphase ocp """
+        max_iteration = self.setup['maxIteration']
+        for step in range(max_iteration):
             if self.setup['verbose'] == 1:
-                print('{}th in {} iteration'.format(step + 1, maxiteration))
+                print('{}th in {} iteration'.format(step + 1, max_iteration))
             if self.setup['verbose'] == 2:
                 print('-' * 100)
-                print('{}th in {} iteration'.format(step + 1, maxiteration).center(100))
+                print('{}th in {} iteration'.format(step + 1, max_iteration).center(100))
                 print('-' * 100)
 
             # solve
-            self.socp.solve(solver='ECOS',  verbose=False)
+            self.socp.solve(solver='ECOS', verbose=False)
             # record
-            self.RecordResult()
-            self.result.addcvxtime(self.socp.cvxProb._solver_stats.solve_time)
-            self.result.meshHistory.append(self.socp.gatherMeshes())
+            self.record_result()
+            self.result.add_cvx_time(self.socp.cvxProb._solver_stats.solve_time)
+            self.result.meshHistory.append(self.socp.gather_meshes())
             self.result.stepNum += 1
 
-            if not self.socp.isSolved():
-                raise BaseException('There is no solution!')
+            if not self.socp.is_solved():
+                raise Exception('There is no solution!')
             if self.socp.converged:
                 break
             self.socp.update()
 
             # plot solving process
             if (step + 1) % self.setup['plot_interval'] == 0:
-                self.plotXU(traj=self.result.solutionDimension, color='k', linewidth=0.6, **kwargs)
+                self.plot_xu(traj=self.result.solutionDimension, color='k', linewidth=0.6, **kwargs)
 
         # finalize
         self.postprocess()
 
-    def getObjective(self):
+    def get_objective(self):
         traj = self.result.solution
-        obj = self.socp.getObjective(traj)
+        obj = self.socp.get_objective(traj)
         return obj
 
-    def plotPeroformanceHistory(self):
+    def plot_peroformance_history(self):
         print('Nonlinear:\t', self.algorithm.realJTrace)
         print('Linear:\t', self.algorithm.fakeJTrace)
         print('Ratio History:\t', self.algorithm.ratioHistory)
@@ -92,19 +92,19 @@ class PySCP:
         plt.plot(self.algorithm.fakeAllJTrace, marker='*')
         plt.show()
 
-    def RecordResult(self, finish=False):
-        self.result.solution = self.socp.gatherRefTrajectory()
-        self.result.solutionDimension = self.socp.dimTrajectory(self.result.solution)
-        self.result.errorHistory.append(self.socp.gatherDistDynamicsCost(self.result.solution))
+    def record_result(self, finish=False):
+        self.result.solution = self.socp.gather_ref_trajectory()
+        self.result.solutionDimension = self.socp.dim_trajectory(self.result.solution)
+        self.result.errorHistory.append(self.socp.gather_dist_dynamics_cost(self.result.solution))
         if finish:
-            solutionIntegrated = self.socp.gatherIntegratedTrajectory()
-            self.result.solutionIntegrated = self.socp.dimTrajectory(solutionIntegrated)
+            solution_integrated = self.socp.gather_integrated_trajectory()
+            self.result.solutionIntegrated = self.socp.dim_trajectory(solution_integrated)
 
-    def plotXU(self, traj, **kwargs):
+    def plot_xu(self, traj, **kwargs):
         figsize = (10, 6)
         # pre-process
         if kwargs.get('matlab_path') is not None:
-            matTraj = self.readMatlabData(kwargs.get('matlab_path'))
+            mat_traj = self.read_matlab_data(kwargs.get('matlab_path'))
 
         # plot states in one figure, and controls in another
         tf = np.zeros((self.setup['phaseNum'],))
@@ -131,26 +131,28 @@ class PySCP:
                 controlyscale = kwargs.get('controlyscale')
 
             if kwargs.get('matlab_path'):
-                mattime = matTraj[0]
-                matState = matTraj[1]
-                matControl = matTraj[2]
+                mattime = mat_traj[0]
+                matState = mat_traj[1]
+                matControl = mat_traj[2]
 
             if self.setup['plotStyle'] == 'grid':
                 plt.figure(1, figsize=figsize)
 
             xrow = int(np.sqrt(xdim))
-            xcol = np.ceil(xdim / xrow)
+            xcol = int(np.ceil(xdim / xrow))
             urow = int(np.sqrt(udim))
-            ucol = np.ceil(udim / urow)
+            ucol = int(np.ceil(udim / urow))
             for ix in range(xdim):
                 if self.setup['plotStyle'] == 'grid':
                     plt.subplot(xrow, xcol, ix + 1)
                 else:
                     plt.figure(ix, figsize=figsize)
-                plt.plot(xt, state[:, ix] * stateyscale[ix], color=kwargs.get('color'), marker=kwargs.get('marker'), linewidth=kwargs.get('linewidth'))
+                plt.plot(xt, state[:, ix] * stateyscale[ix], color=kwargs.get('color'), marker=kwargs.get('marker'),
+                         linewidth=kwargs.get('linewidth'))
 
                 if kwargs.get('matlab_path'):
-                    plt.plot(mattime, matState[:, ix] * stateyscale[ix], color='r', linestyle='--', linewidth=kwargs.get('linewidth'))
+                    plt.plot(mattime, matState[:, ix] * stateyscale[ix], color='r', linestyle='--',
+                             linewidth=kwargs.get('linewidth'))
 
                 plt.xlabel('time/s')
                 if kwargs.get('state_name'):
@@ -189,7 +191,8 @@ class PySCP:
         if kwargs.get('show'):
             plt.show()
 
-    def readMatlabData(self, path):
+    @staticmethod
+    def read_matlab_data(path):
         from scipy.io import loadmat
 
         data = loadmat(path)
@@ -213,17 +216,18 @@ class PySCP:
         print('Solution Information')
         print(tb.draw())
 
-    def preprocess(self, setup):
+    @staticmethod
+    def preprocess(setup):
         """
         预处理：无量纲化→
-        preprocess before any operation starts. The workflow is nondimensionlize→
+        preprocess before any operation starts. The workflow is Non-dimensionalization
         :param setup:
         :return: setup
         """
         setup['phaseNum'] = len(setup['model'].phases)
-        # 无量纲化处理, non-dimensionlize
+        # 无量纲化处理, Non-dimensionalization
         for phase in setup['model'].phases:
-            phase.nonDimensionlize()
+            phase.non_dimensionlize()
 
         # 显示级别，display level
         if 'verbose' in setup:
@@ -252,7 +256,7 @@ class PySCP:
         algorithm_flag = setup.get('algorithm')  # iterative algorithm: Trust region method or line search.
         if algorithm_flag is None or algorithm_flag == 'TrustRegion':
             algorithm = TrustRegion(setup)
-            algorithm.setupTrustRegion(setup['model'].phases)
+            algorithm.setup_trust_region(setup['model'].phases)
         else:
             algorithm = TrustRegionLineSearch(setup)  # TODO
         setup['algorithm'] = algorithm
@@ -263,7 +267,7 @@ class PySCP:
         return setup
 
     def postprocess(self):
-        self.RecordResult(finish=True)
+        self.record_result(finish=True)
         # self.result.maxError = self.getMaxRelativeError()
         self.result.maxRungeError = 0
-        self.result.objective = self.getObjective()
+        self.result.objective = self.get_objective()

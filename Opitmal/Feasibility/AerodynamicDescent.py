@@ -8,10 +8,10 @@ from scipy.interpolate import interp1d
 from lib.utils.plotlib import *
 from lib.utils.PlanetData import Earth
 from lib.utils.Scale import Scale
-from lib.Mesh.MeshHP import hpfLGR
+from lib.Mesh.MeshHP import HpfLGR
 
 
-def quadraticInterp(t0, y0, t1):
+def quadratic_interp(t0, y0, t1):
     """ 二次插值 """
     f = interp1d(t0, y0, kind='quadratic', fill_value='extrapolate')
     y1 = f(t1)
@@ -37,7 +37,7 @@ class Vehicle:
         self.udim = 1
         self.xslices = self.getSlices()
 
-        self.lgr = hpfLGR([ncp], [1])
+        self.lgr = HpfLGR([ncp], [1])
         self.PDM = self.lgr.PDM
 
         self.x0, self.lb, self.ub = self.initialize()

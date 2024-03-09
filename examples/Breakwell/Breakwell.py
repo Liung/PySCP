@@ -80,7 +80,7 @@ def multipleCases():
                     'scheme': 'integral',  # difference or integration
                     'adaptive': False,
                     'degree': [hpList[1][i]] * hpList[0][i],
-                    'segFractions': [1. / hpList[0][i]] * hpList[0][i]}
+                    'seg_fractions': [1. / hpList[0][i]] * hpList[0][i]}
         SSConfig = {'meshName': 'RK',
                     'adaptive': False,
                     'ncp': ssList[i]}
@@ -122,12 +122,16 @@ def compare():
             method1 = {'meshName': 'ZOH', 'ncp': ssList[i]}
             method2 = {'meshName': 'FOH', 'ncp': ssList[i]}
             method3 = {'meshName': 'RK', 'ncp': ssList[i]}
-            method4 = {'meshName': 'LG', 'scheme': 'integral', 'degree': [ppList[i]] * 1, 'segFractions': [1. / 1] * 1}
-            method5 = {'meshName': 'LGR', 'scheme': 'integral', 'degree': [ppList[i]] * 1, 'segFractions': [1. / 1] * 1}
-            method6 = {'meshName': 'fLGR', 'scheme': 'integral', 'degree': [ppList[i]] * 1, 'segFractions': [1. / 1] * 1}
-            method7 = {'meshName': 'LG', 'scheme': 'integral', 'degree': [10] * hhList[i], 'segFractions': [1. / hhList[i]] * hhList[i]}
-            method8 = {'meshName': 'LGR', 'scheme': 'integral', 'degree': [10] * hhList[i], 'segFractions': [1. / hhList[i]] * hhList[i]}
-            method9 = {'meshName': 'fLGR', 'scheme': 'integral', 'degree': [10] * hhList[i], 'segFractions': [1. / hhList[i]] * hhList[i]}
+            method4 = {'meshName': 'LG', 'scheme': 'integral', 'degree': [ppList[i]] * 1, 'seg_fractions': [1. / 1] * 1}
+            method5 = {'meshName': 'LGR', 'scheme': 'integral', 'degree': [ppList[i]] * 1, 'seg_fractions': [1. / 1] * 1}
+            method6 = {'meshName': 'fLGR', 'scheme': 'integral', 'degree': [ppList[i]] * 1,
+                       'seg_fractions': [1. / 1] * 1}
+            method7 = {'meshName': 'LG', 'scheme': 'integral', 'degree': [10] * hhList[i],
+                       'seg_fractions': [1. / hhList[i]] * hhList[i]}
+            method8 = {'meshName': 'LGR', 'scheme': 'integral', 'degree': [10] * hhList[i],
+                       'seg_fractions': [1. / hhList[i]] * hhList[i]}
+            method9 = {'meshName': 'fLGR', 'scheme': 'integral', 'degree': [10] * hhList[i],
+                       'seg_fractions': [1. / hhList[i]] * hhList[i]}
             methods = [method1, method2, method3, method4, method5, method6, method7, method8, method9]
             setup = {'model': vehicle,
                      'meshConfig': methods[imethod],
@@ -174,7 +178,7 @@ def compare():
 def paper():
     vehicle = Breakwell()
 
-    PSConfig = {'meshName': 'LGR', 'scheme': 'integral', 'degree': [40] * 2, 'segFractions': [0.5] * 2}
+    PSConfig = {'meshName': 'LGR', 'scheme': 'integral', 'degree': [40] * 2, 'seg_fractions': [0.5] * 2}
     SSConfig = {'meshName': 'RK', 'ncp': 40}
 
     setup = {'model': vehicle,
@@ -187,14 +191,14 @@ def paper():
     prob = PySCP(setup)
     # prob.plotXU(traj=prob.result.solutionDimension, show=False)
     prob.solve()
-    prob.plotXU(traj=prob.result.solutionIntegrated, marker='.')
-    prob.plotXU(traj=prob.result.solutionDimension,
-                show=True,
-                save=False,
-                # matlab_path='breakwell.mat',
-                state_name=[r'$x$', r'$v$'],
-                control_name=['u'],
-                legend=['Initial Guess', 'Open Loop', 'PySCP'])
+    prob.plot_xu(traj=prob.result.solutionIntegrated, marker='.')
+    prob.plot_xu(traj=prob.result.solutionDimension,
+                 show=True,
+                 save=False,
+                 # matlab_path='breakwell.mat',
+                 state_name=[r'$x$', r'$v$'],
+                 control_name=['u'],
+                 legend=['Initial Guess', 'Open Loop', 'PySCP'])
     prob.print()
 
 

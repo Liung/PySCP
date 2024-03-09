@@ -4,10 +4,10 @@ date: 2022-01-12
 """
 
 import numpy as np
-from lib.utils.xfuncs import RelativeError, PointwiseRelativeError, floatEqual
+from lib.utils.xfuncs import relative_error, pointwise_relative_error, float_equal
 from scipy.integrate import odeint
 from lib.Mesh.MeshSS import ZOH, FOH, RungeKutta, Trapezoidal
-from lib.Mesh.MeshHP import hpLG, hpLGR, hpfLGR, hpPseudoSpectral
+from lib.Mesh.MeshHP import HpLG, HpLGR, HpfLGR, HpPseudoSpectral
 from lib.Mesh.MeshHybrid import Hybrid
 
 meshMethodDict = {'ZOH': ZOH,
@@ -15,9 +15,9 @@ meshMethodDict = {'ZOH': ZOH,
                   'RK': RungeKutta,
                   'Trapezoidal': Trapezoidal,
 
-                  'LG': hpLG,
-                  'LGR': hpLGR,
-                  'fLGR': hpfLGR,
+                  'LG': HpLG,
+                  'LGR': HpLGR,
+                  'fLGR': HpfLGR,
                   'Hybrid': Hybrid}
 
 """
@@ -30,39 +30,39 @@ class PhaseManager:
         """ ------------------------------- initialize mesh  ------------------------------- """
         assert meshConfig['meshName'] in meshMethodDict
         self.meshName = meshConfig['meshName']
-        if self.isPseudospectral():
+        if self.is_pseudo_spectral():
             self.scheme = meshConfig['scheme']
         else:
             self.scheme = None
         method = meshMethodDict[self.meshName]
 
-        if self.isPseudospectral():
-            # pseudo-spectral methods
+        if self.is_pseudo_spectral():
+            # pseudo spectral methods
             if isinstance(meshConfig['degree'], list):
                 degree = meshConfig['degree']
             else:
                 degree = [meshConfig['degree']]
 
-            segFractions = meshConfig.get('segFractions')
+            segFractions = meshConfig.get('seg_fractions')
             if segFractions is None:
                 segFractions = [1. / len(degree)] * len(degree)
             else:
-                assert floatEqual(sum(segFractions), 1.)
+                assert float_equal(sum(segFractions), 1.)
 
-            self.mesh = method(degree=degree, segFractions=segFractions)
-        elif self.isSingleStep():
+            self.mesh = method(degree=degree, seg_fractions=segFractions)
+        elif self.is_single_step():
             # single step methods
             self.mesh = method(ncp=meshConfig.get('ncp'), mps=meshConfig.get('mps'))
         elif self.meshName == 'Hybrid':
             segs = 4
             self.mesh = Hybrid(segDegrees=[10] * segs, segNames=['fLGR'] * segs, segFractions=[1 / segs] * segs)
-            # self.mesh = Hybrid(segDegrees=[10, 10, 10, 10], segNames=['fLGR', 'RK', 'fLGR', 'RK'], segFractions=[0.25, 0.25, 0.25, 0.25])
+            # self.mesh = Hybrid(seg_degrees=[10, 10, 10, 10], segNames=['fLGR', 'RK', 'fLGR', 'RK'], seg_fractions=[0.25, 0.25, 0.25, 0.25])
         elif self.meshName == 'Trapezoidal':
             self.mesh = Trapezoidal(ncp=meshConfig.get('ncp'), mps=meshConfig.get('mps'))
 
         self.model = model
         self.phaseNo = phaseNo
-        self.xdim, self.udim = model.phases[phaseNo].getDimension()
+        self.xdim, self.udim = model.phases[phaseNo].get_dimension()
         self.ncp = self.mesh.ncp
         self.nx = self.mesh.nx
         self.nu = self.mesh.nu
@@ -105,15 +105,15 @@ class PhaseManager:
             self.A_tilde = np.zeros([self.ncp + 1, self.xdim, self.xdim])
             self.B_tilde = np.zeros([self.ncp + 1, self.xdim, self.udim])
 
-    def getDynamicsFuncValue(self, x, u, t, auxdata):
+    def get_dynamics_func_value(self, x, u, t, auxdata):
         # 定常系统的动力学方程只与状态和控制有关，与时间无关。为了以后适用于时变系统，留了时间变量接口
         return self.model.phases[self.phaseNo].dynamicsFunc(x, u, 0, auxdata)
 
-    def refreshMatrices(self, xk, uk, sigmak, auxdata):
-        if self.isPseudospectral():
+    def refresh_matrices(self, xk, uk, sigmak, auxdata):
+        if self.is_pseudo_spectral():
             for i in range(self.ncp):
-                ix = self.mesh.cpState[i]
-                ff, A, B = self.getDynamicsFuncValue(xk[ix], uk[i], 0, auxdata)
+                ix = self.mesh.cp_state[i]
+                ff, A, B = self.get_dynamics_func_value(xk[ix], uk[i], 0, auxdata)
                 self.A_tilde[i] = sigmak * A
                 self.B_tilde[i] = sigmak * B
                 self.f_tilde[i] = ff
@@ -122,7 +122,7 @@ class PhaseManager:
             for i in range(self.ncp):
                 dt = self.mesh.xtao[i + 1] - self.mesh.xtao[i]  # interval length
                 self.vec0[self.x_index] = xk[i]
-                vecf = np.array(odeint(self.ZOHDynamics, self.vec0, (0, dt), args=(uk[i], sigmak, auxdata,))[1])
+                vecf = np.array(odeint(self.zoh_dynamics, self.vec0, (0, dt), args=(uk[i], sigmak, auxdata,))[1])
 
                 phi = vecf[self.A_tilde_index].reshape((self.xdim, self.xdim))
                 self.A_tilde[i] = phi
@@ -133,7 +133,7 @@ class PhaseManager:
             for i in range(self.ncp):
                 dt = self.mesh.xtao[i + 1] - self.mesh.xtao[i]  # interval length
                 self.vec0[self.x_index] = xk[i]
-                vecf = np.array(odeint(self.FOHDynamics, self.vec0, (0, dt), args=(uk[i], uk[i + 1], dt, sigmak, auxdata))[1])
+                vecf = np.array(odeint(self.foh_dynamics, self.vec0, (0, dt), args=(uk[i], uk[i + 1], dt, sigmak, auxdata))[1])
 
                 phi = vecf[self.A_tilde_index].reshape((self.xdim, self.xdim))
                 self.A_tilde[i] = phi
@@ -146,28 +146,28 @@ class PhaseManager:
                 um = (uk[i] + uk[i + 1]) / 2  # U_(i+1/2)
                 dt = self.mesh.xtao[i + 1] - self.mesh.xtao[i]
 
-                ff1, A1, B1 = self.getDynamicsFuncValue(xk[i], uk[i], 0, auxdata)
+                ff1, A1, B1 = self.get_dynamics_func_value(xk[i], uk[i], 0, auxdata)
                 sA1 = sigmak * A1
                 sB1 = sigmak * B1
                 R1 = -(np.matmul(sA1, xk[i]) + np.matmul(sB1, uk[i]))
                 k1 = sigmak * ff1
 
                 xk_m1 = xk[i] + dt / 2 * k1
-                ff2, A2, B2 = self.getDynamicsFuncValue(xk_m1, um, 0, auxdata)
+                ff2, A2, B2 = self.get_dynamics_func_value(xk_m1, um, 0, auxdata)
                 sA2 = sigmak * A2
                 sB2 = sigmak * B2
                 R2 = -(np.matmul(sA2, xk_m1) + np.matmul(sB2, um))
                 k2 = sigmak * ff2
 
                 xk_m2 = xk[i] + dt / 2 * k2
-                ff3, A3, B3 = self.getDynamicsFuncValue(xk_m2, um, 0, auxdata)
+                ff3, A3, B3 = self.get_dynamics_func_value(xk_m2, um, 0, auxdata)
                 sA3 = sigmak * A3
                 sB3 = sigmak * B3
                 R3 = -(np.matmul(sA3, xk_m2) + np.matmul(sB3, um))
                 k3 = sigmak * ff3
 
                 xk1 = xk[i] + dt * k3
-                ff4, A4, B4 = self.getDynamicsFuncValue(xk1, uk[i + 1], 0, auxdata)
+                ff4, A4, B4 = self.get_dynamics_func_value(xk1, uk[i + 1], 0, auxdata)
                 sA4 = sigmak * A4
                 sB4 = sigmak * B4
                 R4 = -(np.matmul(sA4, xk1) + np.matmul(sB4, uk[i + 1]))
@@ -194,28 +194,28 @@ class PhaseManager:
                         um = (segUk[i] + segUk[i + 1]) / 2  # U_(i+1/2)
                         dt = self.mesh.xtao[imat + 1] - self.mesh.xtao[imat]
 
-                        ff1, A1, B1 = self.getDynamicsFuncValue(segXk[i], segUk[i], 0, auxdata)
+                        ff1, A1, B1 = self.get_dynamics_func_value(segXk[i], segUk[i], 0, auxdata)
                         sA1 = sigmak * A1
                         sB1 = sigmak * B1
                         R1 = -(np.matmul(sA1, segXk[i]) + np.matmul(sB1, segUk[i]))
                         k1 = sigmak * ff1
 
                         xk_m1 = segXk[i] + dt / 2 * k1
-                        ff2, A2, B2 = self.getDynamicsFuncValue(xk_m1, um, 0, auxdata)
+                        ff2, A2, B2 = self.get_dynamics_func_value(xk_m1, um, 0, auxdata)
                         sA2 = sigmak * A2
                         sB2 = sigmak * B2
                         R2 = -(np.matmul(sA2, xk_m1) + np.matmul(sB2, um))
                         k2 = sigmak * ff2
 
                         xk_m2 = segXk[i] + dt / 2 * k2
-                        ff3, A3, B3 = self.getDynamicsFuncValue(xk_m2, um, 0, auxdata)
+                        ff3, A3, B3 = self.get_dynamics_func_value(xk_m2, um, 0, auxdata)
                         sA3 = sigmak * A3
                         sB3 = sigmak * B3
                         R3 = -(np.matmul(sA3, xk_m2) + np.matmul(sB3, um))
                         k3 = sigmak * ff3
 
                         xk1 = segXk[i] + dt * k3
-                        ff4, A4, B4 = self.getDynamicsFuncValue(xk1, segUk[i + 1], 0, auxdata)
+                        ff4, A4, B4 = self.get_dynamics_func_value(xk1, segUk[i + 1], 0, auxdata)
                         sA4 = sigmak * A4
                         sB4 = sigmak * B4
                         R4 = -(np.matmul(sA4, xk1) + np.matmul(sB4, segUk[i + 1]))
@@ -235,7 +235,7 @@ class PhaseManager:
                         imat += 1
                 else:
                     for i in range(self.mesh.segDegrees[iseg]):
-                        ff, A, B = self.getDynamicsFuncValue(segXk[i + 1], segUk[i], 0, auxdata)
+                        ff, A, B = self.get_dynamics_func_value(segXk[i + 1], segUk[i], 0, auxdata)
                         self.A_tilde[imat] = sigmak * A
                         self.B_tilde[imat] = sigmak * B
                         self.f_tilde[imat] = ff
@@ -243,12 +243,12 @@ class PhaseManager:
                         imat += 1
         elif self.meshName == 'Trapezoidal':
             for i in range(self.ncp + 1):
-                ff, A, B = self.getDynamicsFuncValue(xk[i], uk[i], 0, auxdata)
+                ff, A, B = self.get_dynamics_func_value(xk[i], uk[i], 0, auxdata)
                 self.f_tilde[i] = ff
                 self.A_tilde[i] = A
                 self.B_tilde[i] = B
 
-    def ZOHDynamics(self, vec, t, u, sigma, auxdata):
+    def zoh_dynamics(self, vec, t, u, sigma, auxdata):
         """
         derivative function to compute state matrix.
 
@@ -261,7 +261,7 @@ class PhaseManager:
         """
         x = vec[self.x_index]
 
-        ff, A, B = self.getDynamicsFuncValue(x, u, t, auxdata)
+        ff, A, B = self.get_dynamics_func_value(x, u, t, auxdata)
 
         Asigma = A.reshape((self.xdim, self.xdim)) * sigma
         Bsigma = B.reshape((self.xdim, self.udim)) * sigma
@@ -278,7 +278,7 @@ class PhaseManager:
 
         return dvdt
 
-    def FOHDynamics(self, vec, t, uk, uk_1, dt, sigma, auxdata):
+    def foh_dynamics(self, vec, t, uk, uk_1, dt, sigma, auxdata):
         """
         derivative function to compute state matrix.
 
@@ -294,7 +294,7 @@ class PhaseManager:
         u = alpha * uk + beta * uk_1
         x = vec[self.x_index]
 
-        ff, A, B = self.getDynamicsFuncValue(x, u, t, auxdata)
+        ff, A, B = self.get_dynamics_func_value(x, u, t, auxdata)
 
         Asigma = A.reshape((self.xdim, self.xdim)) * sigma
         Bsigma = B.reshape((self.xdim, self.udim)) * sigma
@@ -312,60 +312,60 @@ class PhaseManager:
 
         return dvdt
 
-    def getHPFunctionValue(self, xk, uk, sigmak, auxdata):
+    def get_hp_function_value(self, xk, uk, sigmak, auxdata):
         """ get integrated states """
         fx = np.zeros((self.ncp, self.xdim))
         for i in range(self.ncp):
-            ix = self.mesh.cpState[i]
-            fx[i], _, _ = self.getDynamicsFuncValue(xk[ix], uk[i], sigmak, auxdata)
+            ix = self.mesh.cp_state[i]
+            fx[i], _, _ = self.get_dynamics_func_value(xk[ix], uk[i], sigmak, auxdata)
         return fx
 
-    def getHybridFunctionValue(self, xk, uk, sigmak, auxdata):
+    def get_hybrid_function_value(self, xk, uk, sigmak, auxdata):
         """ get integrated states """
         fx = np.zeros((len(uk), self.xdim))
         for i in range(len(uk)):
-            fx[i], _, _ = self.getDynamicsFuncValue(xk[i + 1], uk[i], sigmak, auxdata)
+            fx[i], _, _ = self.get_dynamics_func_value(xk[i + 1], uk[i], sigmak, auxdata)
         return fx
 
-    def getApproximateMatrices(self):
+    def get_approximate_matrices(self):
         """ get approximation matrices: A_tilde, B_tilde, B2_tilde, F_tilde, R_tilde """
         return self.A_tilde, self.B_tilde, self.B2_tilde, self.f_tilde, self.R_tilde
 
-    def isPseudospectral(self):
+    def is_pseudo_spectral(self):
         if self.meshName in ['LG', 'LGR', 'fLGR']:
             return True
         else:
             return False
 
-    def isSingleStep(self):
+    def is_single_step(self):
         if self.meshName in ['ZOH', 'FOH', 'RK']:
             return True
         else:
             return False
 
-    def isHybrid(self):
+    def is_hybrid(self):
         if self.meshName in ['Hybrid']:
             return True
         else:
             return False
 
-    def isTrapezoidal(self):
+    def is_trapezoidal(self):
         if self.meshName in ['Trapezoidal']:
             return True
         else:
             return False
 
-    def getPointwiseDynamicsCost(self, xk, uk, sigmak, auxdata):
+    def get_pointwise_dynamics_cost(self, xk, uk, sigmak, auxdata):
         """ 动力学方程误差 DX-f(x,u) """
-        if self.isPseudospectral():
-            fx = self.getHPFunctionValue(xk, uk, sigmak, auxdata)
+        if self.is_pseudo_spectral():
+            fx = self.get_hp_function_value(xk, uk, sigmak, auxdata)
             if self.scheme == 'differential':
-                cost = PointwiseRelativeError(np.matmul(self.mesh.PDM, xk), sigmak * fx)
+                cost = pointwise_relative_error(np.matmul(self.mesh.PDM, xk), sigmak * fx)
                 return cost
             else:
-                cost = PointwiseRelativeError(xk[self.mesh.PIMXfIndex], xk[self.mesh.PIMX0Index] + sigmak * np.matmul(self.mesh.PIM, fx))
+                cost = pointwise_relative_error(xk[self.mesh.PIMXfIndex], xk[self.mesh.PIMX0Index] + sigmak * np.matmul(self.mesh.PIM, fx))
                 return cost
-        elif self.isSingleStep():
+        elif self.is_single_step():
             Xint = np.zeros((self.ncp, self.xdim))
             if self.meshName == 'ZOH':
                 for i in range(self.ncp):
@@ -379,4 +379,4 @@ class PhaseManager:
                                + self.B_tilde[i] @ uk[i] + self.B2_tilde[i] @ uk[i + 1]
                                + self.f_tilde[i] * sigmak
                                + self.R_tilde[i])
-            return PointwiseRelativeError(xk[1:], Xint)
+            return pointwise_relative_error(xk[1:], Xint)

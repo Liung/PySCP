@@ -7,7 +7,7 @@ from scipy.interpolate import interp1d
 from lib.utils.plotlib import *
 from lib.utils.PlanetData import Earth
 from lib.utils.Scale import Scale
-from lib.Mesh.MeshHP import hpfLGR
+from lib.Mesh.MeshHP import HpfLGR
 
 
 class Vehicle:
@@ -15,7 +15,7 @@ class Vehicle:
         self.ncp = ncp
         self.xdim = 2
         self.udim = 1
-        self.lgr = hpfLGR([ncp], [1])
+        self.lgr = HpfLGR([ncp], [1])
         self.PDM = self.lgr.PDM
         self.state0 = np.array([0, 0])
         self.statef = np.array([4.5, 3])

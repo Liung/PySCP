@@ -20,22 +20,22 @@ class MultiPhaseSOCP:
         if self.model.linkages:
             self.linkageCVXvar = cvx.Variable(nonneg=True)
 
-        self.cvxProb = self.setupProblem()
+        self.cvxProb = self.setup_problem()
 
-        traj = self.gatherRefTrajectory()
-        J_hat = self.getAugmentedObjective(traj)
+        traj = self.gather_ref_trajectory()
+        J_hat = self.get_augmented_objective(traj)
         if self.verbose:
             print('|\tJ={:.8g}'.format(J_hat))
-        self.algorithm.initJTrace(J_hat)
+        self.algorithm.init_jtrace(J_hat)
 
-    def setupProblem(self):
+    def setup_problem(self):
         cstrs = []
         dvs = []
         for iPhase in range(self.phaseNum):
             dvs.append(self.phases[iPhase].dv)
 
-        refTraj = self.gatherRefTrajectory()
-        weights4State, weights4Control = self.gatherIntegralWeights()
+        refTraj = self.gather_ref_trajectory()
+        weights4State, weights4Control = self.gather_integral_weights()
         obj = self.model.objective(dvs, refTraj, weights4State, weights4Control)
 
         for iPhase in range(self.phaseNum):
@@ -47,7 +47,7 @@ class MultiPhaseSOCP:
                 obj += self.algorithm.weightBoundary[iPhase] * self.phases[iPhase].setupBoundaryViolation()  # boundary penalty
 
         if self.model.linkages:
-            cstrs += self.setupLinkages()
+            cstrs += self.setup_linkages()
             obj += self.algorithm.weightLinkage * self.linkageCVXvar
 
         cvxProb = cvx.Problem(cvx.Minimize(obj), cstrs)
@@ -56,7 +56,7 @@ class MultiPhaseSOCP:
             print('The problem is not convex')
         return cvxProb
 
-    def setupLinkages(self):
+    def setup_linkages(self):
         cstrs = []
         for linkage in self.model.linkages:
             for istate in linkage.index:
@@ -68,9 +68,9 @@ class MultiPhaseSOCP:
         return cstrs
 
     def update(self):
-        self.cvxProb = self.setupProblem()  # TODO：自适应改变网格时再调用
-        traj = self.gatherNewTrajectory()
-        J_hat = self.getAugmentedObjective(traj)
+        self.cvxProb = self.setup_problem()  # TODO：自适应改变网格时再调用
+        traj = self.gather_new_trajectory()
+        J_hat = self.get_augmented_objective(traj)
         # refresh = self.algorithm.TrustRegionAdaption(J_hat)
         # if self.verbose:
         #     print('|\tJ={:.8g}'.format(J_hat))
@@ -78,7 +78,7 @@ class MultiPhaseSOCP:
         for iPhase in range(self.phaseNum):
             self.phases[iPhase].update()
 
-    def recordHistory(self):
+    def record_history(self):
         print('信赖域：')
         print(self.algorithm.trState, self.algorithm.trControl, self.algorithm.trSigma)
         for iPhase in range(self.phaseNum):
@@ -91,13 +91,13 @@ class MultiPhaseSOCP:
         except Exception as e:
             print(e)
 
-    def isSolved(self):
+    def is_solved(self):
         if 'optimal' in self.cvxProb.status:
             return True
         else:
             return False
 
-    def getAugmentedObjective(self, traj):
+    def get_augmented_objective(self, traj):
         from texttable import Texttable
         costDynamics = []
         costPath = []
@@ -144,7 +144,7 @@ class MultiPhaseSOCP:
             tb.float_format = '.8'
             print(tb.draw())
 
-        J_hat = self.getObjective(traj) \
+        J_hat = self.get_objective(traj) \
                 + np.dot(self.algorithm.weightDynamics, costDynamics) \
                 + np.dot(self.algorithm.weightPath, costPath) \
                 + np.dot(self.algorithm.weightBoundary, costBoundary) \
@@ -160,23 +160,23 @@ class MultiPhaseSOCP:
 
         return J_hat
 
-    def getObjective(self, refTraj):
+    def get_objective(self, refTraj):
         dvs = []
         for iPhase in range(self.phaseNum):
             dvs.append(self.phases[iPhase].dv)
-        weights4State, weights4Control = self.gatherIntegralWeights()
+        weights4State, weights4Control = self.gather_integral_weights()
         obj = self.model.objective(refTraj, refTraj, weights4State, weights4Control)
         return obj
 
     # ----------------------------------------- gather functions ----------------------------------------- #
-    def gatherMeshes(self):
+    def gather_meshes(self):
         """ collect mesh of all phases """
         meshes = []
         for iPhase in range(self.phaseNum):
             meshes.append(self.phases[iPhase].manager)
         return meshes
 
-    def gatherTrustRegionBoundary(self, variables, trust_region):
+    def gather_trust_region_boundary(self, variables, trust_region):
         """
         trust region lower bound and upper bound for all phases
         """
@@ -192,7 +192,7 @@ class MultiPhaseSOCP:
             lower.append(phase_lower)
         return upper, lower
 
-    def gatherDynamicsViolationDistribution(self, variables):
+    def gather_dynamics_violation_distribution(self, variables):
         """ dynamics violation at each collocation point in all phases """
         nvs = []
         for iPhase in range(self.phaseNum):
@@ -200,37 +200,37 @@ class MultiPhaseSOCP:
             nvs.append(nv)
         return nvs
 
-    def gatherRefTrajectory(self):
+    def gather_ref_trajectory(self):
         """
         record the iterative solution process
         """
         refTraj = [self.phases[iPhase].params.refTraj for iPhase in range(self.phaseNum)]
         return refTraj
 
-    def gatherRefTrajectoryDimensioned(self):
+    def gather_ref_trajectory_dimensioned(self):
         """ reference trajectory of all phases (dimensioned) """
-        refTraj = self.gatherRefTrajectory()
+        refTraj = self.gather_ref_trajectory()
         return refTraj
 
-    def gatherNewTrajectory(self):
+    def gather_new_trajectory(self):
         """ reference trajectory of all phases """
         refTraj = [self.phases[iPhase].getNewTrajectory() for iPhase in range(self.phaseNum)]
         return refTraj
 
-    def dimTrajectory(self, trajectory):
+    def dim_trajectory(self, trajectory):
         """ reference trajectory of all phases (dimensioned) """
-        refTraj = [trajectory[iPhase].getDimensionlizedData(self.phases[iPhase].phaseInfo) for iPhase in range(self.phaseNum)]
+        refTraj = [trajectory[iPhase].get_dimensionlized_data(self.phases[iPhase].phaseInfo) for iPhase in range(self.phaseNum)]
         return refTraj
 
-    def gatherIntegratedTrajectory(self):
+    def gather_integrated_trajectory(self):
         integratedTraj = [self.phases[iPhase].getOpenLoopPropagatedTrajectory(self.phases[iPhase].getRefTrajectory()) for iPhase in range(self.phaseNum)]
         return integratedTraj
 
-    def gatherDistDynamicsCost(self, trajectory):
+    def gather_dist_dynamics_cost(self, trajectory):
         distCosts = [self.phases[iPhase].getDistNonlinearDynamicsCost(trajectory[iPhase]) for iPhase in range(self.phaseNum)]
         return distCosts
 
-    def gatherIntegralWeights(self):
+    def gather_integral_weights(self):
         weights4State = [self.phases[iPhase].params.integralWeight4State for iPhase in range(self.phaseNum)]
         weights4Control = [self.phases[iPhase].params.integralWeight4Control for iPhase in range(self.phaseNum)]
         return weights4State, weights4Control

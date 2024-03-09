@@ -28,25 +28,26 @@ class Scale:
         self.controlScale = np.array([getattr(self, u) for u in control_name]).reshape((-1, 1))
         self.sigmaScale = self.time
 
-    def setScale(self, state, control, sigma):
+    def set_scale(self, state, control, sigma):
         self.stateScale = state.reshape((-1, 1))
         self.controlScale = control.reshape((-1, 1))
         self.sigmaScale = sigma
 
-    def getScaled(self, phase):
-        phaseData = PhaseData()
-        phaseData.state = phase.state_bound / self.stateScale
-        phaseData.control = phase.control_bound / self.controlScale
-        phaseData.sigma = phase.sigma / self.sigmaScale
+    def get_scaled(self, phase):
+        phase_data = PhaseData()
+        phase_data.state = phase.state_bound / self.stateScale
+        phase_data.control = phase.control_bound / self.controlScale
+        phase_data.sigma = phase.sigma / self.sigmaScale
+        return phase_data
 
-    def getOriginal(self, phase):
-        phaseData = PhaseData()
-        phaseData.state = phase.state_bound * self.stateScale
-        phaseData.control = phase.control_bound * self.controlScale
-        phaseData.sigma = phase.sigma * self.sigmaScale
+    def get_original(self, phase):
+        phase_data = PhaseData()
+        phase_data.state = phase.state_bound * self.stateScale
+        phase_data.control = phase.control_bound * self.controlScale
+        phase_data.sigma = phase.sigma * self.sigmaScale
         if self.path is not None:
-            phaseData.path = phase.pathFunc * self.path
-        return phaseData
+            phase_data.path = phase.pathFunc * self.path
+        return phase_data
 
 
 class ManualScale:

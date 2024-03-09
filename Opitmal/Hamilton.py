@@ -179,7 +179,7 @@ if __name__ == '__main__':
                 'scheme': 'differential',  # difference or integration
                 'adaptive': False,
                 'degree': [40] * 2,
-                'segFractions': [0.5] * 2,
+                'seg_fractions': [0.5] * 2,
                 'tolerance': 1e-6,
                 'maxDegree': 50,
                 'maxIteration': 5}
@@ -199,10 +199,10 @@ if __name__ == '__main__':
     prob = PySCP(setup)
     prob.drawInit(show=False)
     prob.solve()
-    prob.plotXU(show=True,
-                save=False,
-                matlab_path='breakwell.mat',
-                state_name=['h', 'v'],
-                control_name=['control'],
-                legend=['Initial Guess', 'PySCP', 'GPOPS II'])
+    prob.plot_xu(show=True,
+                 save=False,
+                 matlab_path='breakwell.mat',
+                 state_name=['h', 'v'],
+                 control_name=['control'],
+                 legend=['Initial Guess', 'PySCP', 'GPOPS II'])
     prob.print()

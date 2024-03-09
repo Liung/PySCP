@@ -40,7 +40,7 @@ class PhaseInfo:
         self.auxdata = {}
         self.dimensionFlag = True
 
-    def nonDimensionlize(self):
+    def non_dimensionlize(self):
         assert np.all(self.init_state_bound[0] >= self.state_bound[0])
         assert np.all(self.init_state_bound[0] <= self.state_bound[1])
         assert np.all(self.final_state_bound[0] >= self.state_bound[0])
@@ -67,23 +67,23 @@ class PhaseInfo:
             #     self.guess_sigma = self.guess_sigma / self.scale.sigmaScale
         self.dimensionFlag = False
 
-    def getAverageSigma(self):
+    def get_average_sigma(self):
         return (np.mean(self.tf_bound) - np.mean(self.t0_bound)) / 2  # (tf-t0)/2
 
-    def getDimension(self):
+    def get_dimension(self):
         """ 获得xdim和udim
         确保bound数据是2×xdim和2×udim的 """
         assert self.init_state_bound.shape[0] == 2
         assert self.control_bound.shape[0] == 2
         return self.init_state_bound.shape[1], self.control_bound.shape[1]
 
-    def isFreeTime(self):
+    def is_free_time(self):
         if self.t0_bound[0] == self.t0_bound[1] and self.tf_bound[0] == self.tf_bound[1]:
             return False
         else:
             return True
 
-    def checkVadility(self):
+    def check_validity(self):
         for key, value in self.__dict__.items():
             assert value is not None
 
@@ -126,7 +126,7 @@ class PhaseData:
         if nBoundary:
             self.nuBoundary = cvx.Variable((nBoundary,), nonneg=True)
 
-    def getPhaseValues(self):
+    def get_phase_values(self):
         pd = PhaseData()
         pd.xtao = self.xtao
         pd.utao = self.utao
@@ -139,7 +139,7 @@ class PhaseData:
             pd.sigma = self.sigma  # fixed duration
         return pd
 
-    def getDimensionlizedData(self, phaseinfo):
+    def get_dimensionlized_data(self, phaseinfo):
         """ data of a single phase, either cvxpy variables or constant values """
         xt = (self.xtao + 1) * self.sigma * phaseinfo.scale.sigmaScale
         ut = (self.utao + 1) * self.sigma * phaseinfo.scale.sigmaScale
@@ -161,7 +161,7 @@ class ParamStruct:
         self.integralWeight4State = None
         self.integralWeight4Control = None
 
-        # 伪谱法需要的矩阵；for pseudo-spectral methods
+        # 伪谱法需要的矩阵；for pseudo spectral methods
         self.matInt = None
         self.PIMIndex = None  # starting point index in the integral form
         self.PIMedIndex = None  # integrated states index in the integral form
@@ -205,5 +205,5 @@ class Result:
         self.meshHistory = []
         self.errorHistory = []
 
-    def addcvxtime(self, ms):
+    def add_cvx_time(self, ms):
         self.cvxTime += ms

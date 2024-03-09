@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
+
 # from matplotlib.backends.backend_pdf import PdfPages
 
 plt.rcParams['font.sans-serif'] = 'Times New Roman'
@@ -7,7 +8,8 @@ plt.rcParams['mathtext.fontset'] = 'cm'
 plt.rcParams.update({'font.size': 12})
 # config = {"mathtext.fontset": 'stix'}
 # rcParams.update(config)
-SimSun = FontProperties(fname='D:/ProgramData/Miniconda3/Lib/site-packages/matplotlib/mpl-data/fonts/ttf/SimSun.ttf')  # 字体放在该目录下
+SimSun = FontProperties(
+    fname='D:/ProgramData/Miniconda3/Lib/site-packages/matplotlib/mpl-data/fonts/ttf/SimSun.ttf')  # 字体放在该目录下
 
 if __name__ == '__main__':
     # 全屏

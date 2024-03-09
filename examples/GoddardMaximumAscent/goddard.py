@@ -8,6 +8,8 @@ from lib.utils.PlanetData import Earth
 from lib.utils.Scale import Scale
 from lib.utils.Structs import PhaseInfo, Linkage
 
+planet = Earth()
+
 
 class moonLander:
     def __init__(self):
@@ -95,5 +97,5 @@ if __name__ == '__main__':
 
     prob = PySCP(setup)
     prob.solve()
-    prob.plotXU()
+    prob.plot_xu()
     prob.print()

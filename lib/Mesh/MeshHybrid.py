@@ -1,14 +1,14 @@
 import numpy as np
-from lib.Mesh.MeshPS import LegendreGauss, LegendreGaussRadau, flippedLegendreGaussRadau
+from lib.Mesh.MeshPS import LegendreGauss, LegendreGaussRadau, FlippedLegendreGaussRadau
 from lib.Mesh.MeshSS import RungeKutta
-from lib.utils.xfuncs import floatEqual
+from lib.utils.xfuncs import float_equal
 
 
 class Hybrid:
     def __init__(self, segDegrees, segNames, segFractions):
         assert len(segNames) == len(segFractions)
         assert len(segDegrees) == len(segFractions)
-        assert floatEqual(sum(segFractions), 1)
+        assert float_equal(sum(segFractions), 1)
 
         segDegrees = np.array(segDegrees).astype(int)  # convert to ndarray
         self.nseg = len(segDegrees)  # number of segments
@@ -29,7 +29,7 @@ class Hybrid:
                 self.segMethods.append(method)
                 cps.append(method.cps * (taof - tao0) / 2 + (taof + tao0) / 2)
             elif sm == 'fLGR':
-                method = flippedLegendreGaussRadau(segDegrees[i])
+                method = FlippedLegendreGaussRadau(segDegrees[i])
                 self.segMethods.append(method)
                 cps.append(method.cps * (taof - tao0) / 2 + (taof + tao0) / 2)
             else:
@@ -72,7 +72,7 @@ class Hybrid:
                 else:
                     self.segControlIndex.append(slice(leftBound[i], rightBound[i]))
                 self.PIMs.append(self.segMethods[i].PIM * self.segFractions[i])  # PIM multiply
-                self.weights4State[i, self.segStateIndex[i]] = self.segMethods[i].integralWeights * self.segFractions[i]
+                self.weights4State[i, self.segStateIndex[i]] = self.segMethods[i].integral_weights * self.segFractions[i]
                 self.PIMX0Indices.append([0] * self.segDegrees[i])
                 self.PIMXfIndices.append(np.arange(1, self.segDegrees[i] + 1))
         self.weights4State = np.squeeze(np.sum(self.weights4State, axis=0))

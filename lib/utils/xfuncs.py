@@ -7,22 +7,22 @@ import cvxpy as cvx
 from typing import Union
 
 
-def maxRelativeError(a, b):
-    return np.max(RelativeError(a, b))
+def max_relative_error(a, b):
+    return np.max(relative_error(a, b))
 
 
-def PointwiseRelativeError(a, b):
+def pointwise_relative_error(a, b):
     return np.abs(a - b) / (1. + np.max(np.abs(b)))
 
 
-def RelativeError(a, b):
+def relative_error(a, b):
     if len(a.shape) == 1:
         return np.linalg.norm(np.abs(a - b) / (1. + np.max(np.abs(b))))
     else:
         return np.linalg.norm(np.abs(a - b) / (1. + np.max(np.abs(b))), axis=1)
 
 
-def floatEqual(a, b):
+def float_equal(a, b):
     if abs(a - b) < 1e-12:  # threshold to determine whether two floats are equal
         return True
     else:

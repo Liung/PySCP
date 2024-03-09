@@ -68,14 +68,14 @@ def paper():
 
     prob = PySCP(setup)
     prob.solve()
-    prob.plotXU(traj=prob.result.solutionIntegrated, show=False)
-    prob.plotXU(traj=prob.result.solutionDimension,
-                show=True,
-                save=False,
-                matlab_path='moonLanding.mat',
-                state_name=[r'$h$', r'$v$'],
-                control_name=['control'],
-                legend=['Initial Guess', 'PySCP', 'GPOPS II'])
+    prob.plot_xu(traj=prob.result.solutionIntegrated, show=False)
+    prob.plot_xu(traj=prob.result.solutionDimension,
+                 show=True,
+                 save=False,
+                 matlab_path='moonLanding.mat',
+                 state_name=[r'$h$', r'$v$'],
+                 control_name=['control'],
+                 legend=['Initial Guess', 'PySCP', 'GPOPS II'])
     prob.print()
 
 
@@ -102,7 +102,7 @@ def multipleCases():
         PSConfig = {'meshName': 'LGR',
                     'scheme': 'differential',  # difference or integration
                     'degree': [ppList[i]] * 1,
-                    'segFractions': [1. / 1] * 1}
+                    'seg_fractions': [1. / 1] * 1}
         SSConfig = {'meshName': 'RK',
                     'ncp': ssList[i]}
         setup = {'model': vehicle,
@@ -148,12 +148,16 @@ def compare():
             method1 = {'meshName': 'ZOH', 'ncp': ssList[i]}
             method2 = {'meshName': 'FOH', 'ncp': ssList[i]}
             method3 = {'meshName': 'RK', 'ncp': ssList[i]}
-            method4 = {'meshName': 'LG', 'scheme': 'integral', 'degree': [ppList[i]] * 1, 'segFractions': [1. / 1] * 1}
-            method5 = {'meshName': 'LGR', 'scheme': 'integral', 'degree': [ppList[i]] * 1, 'segFractions': [1. / 1] * 1}
-            method6 = {'meshName': 'fLGR', 'scheme': 'integral', 'degree': [ppList[i]] * 1, 'segFractions': [1. / 1] * 1}
-            method7 = {'meshName': 'LG', 'scheme': 'integral', 'degree': [10] * hhList[i], 'segFractions': [1. / hhList[i]] * hhList[i]}
-            method8 = {'meshName': 'LGR', 'scheme': 'integral', 'degree': [10] * hhList[i], 'segFractions': [1. / hhList[i]] * hhList[i]}
-            method9 = {'meshName': 'fLGR', 'scheme': 'integral', 'degree': [10] * hhList[i], 'segFractions': [1. / hhList[i]] * hhList[i]}
+            method4 = {'meshName': 'LG', 'scheme': 'integral', 'degree': [ppList[i]] * 1, 'seg_fractions': [1. / 1] * 1}
+            method5 = {'meshName': 'LGR', 'scheme': 'integral', 'degree': [ppList[i]] * 1, 'seg_fractions': [1. / 1] * 1}
+            method6 = {'meshName': 'fLGR', 'scheme': 'integral', 'degree': [ppList[i]] * 1,
+                       'seg_fractions': [1. / 1] * 1}
+            method7 = {'meshName': 'LG', 'scheme': 'integral', 'degree': [10] * hhList[i],
+                       'seg_fractions': [1. / hhList[i]] * hhList[i]}
+            method8 = {'meshName': 'LGR', 'scheme': 'integral', 'degree': [10] * hhList[i],
+                       'seg_fractions': [1. / hhList[i]] * hhList[i]}
+            method9 = {'meshName': 'fLGR', 'scheme': 'integral', 'degree': [10] * hhList[i],
+                       'seg_fractions': [1. / hhList[i]] * hhList[i]}
             methods = [method1, method2, method3, method4, method5, method6, method7, method8, method9]
             setup = {'model': vehicle,
                      'meshConfig': methods[imethod],

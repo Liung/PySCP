@@ -1,8 +1,8 @@
 """
 Author: xmaple
 Date:   2021-09-27
-PIM:    pseudo-spectral integral matrix
-PDM:    pseudo-spectral differential matrix
+PIM:    pseudo spectral integral matrix
+PDM:    pseudo spectral differential matrix
 cps:    collocation points.
 xtao:  points used in Lagrangian interpolation.
 """
@@ -19,8 +19,8 @@ class LegendreGauss:
         self.xtao = np.concatenate([[-1], self.cps, [1]])
         self.utao = self.cps
 
-        self.jacobiWeights = self.generate_jacobi_weights()
-        self.integralWeights = np.concatenate([[0], self.jacobiWeights, [0]])
+        self.jacobi_weights = self.generate_jacobi_weights()
+        self.integral_weights = np.concatenate([[0], self.jacobi_weights, [0]])
         self.PDM, self.PIM = self.generate_PIM_PDM()
 
     def generate_collocation_points(self):
@@ -35,12 +35,12 @@ class LegendreGauss:
             w[i] = 2 / ((1 - self.cps[i] ** 2) * derivative[-1] ** 2)
         return w
 
-    def barycentricWeights(self):
-        ksi = (-1) ** np.arange(self.ncp) * np.sqrt((1 - self.cps ** 2) * self.jacobiWeights)
+    def barycentric_weights(self):
+        ksi = (-1) ** np.arange(self.ncp) * np.sqrt((1 - self.cps ** 2) * self.jacobi_weights)
         return ksi
 
     def generate_PIM_PDM(self):
-        ksi = self.barycentricWeights()
+        ksi = self.barycentric_weights()
 
         D = np.zeros((self.ncp, self.ncp))
         for k in range(self.ncp):
@@ -60,12 +60,12 @@ class LegendreGauss:
         PDM[:, 0] = -np.sum(PDM[:, 1:], axis=1)  # 其余元素的和的相反数
         PIM = np.zeros((self.ncp + 1, self.ncp))
         PIM[:-1] = np.linalg.inv(PDM[:, 1:-1])
-        PIM[-1] = self.integralWeights[1:-1]
+        PIM[-1] = self.integral_weights[1:-1]
         return PDM, PIM
 
 
 class LegendreGaussRadau:
-    """ Legendre-Gauss-Radau Pseudospectral method
+    """ Legendre-Gauss-Radau pseudo spectral method
     Gauss-Radau xtao are roots of :math:`P_n(x) + P_{n-1}(x)`. """
 
     def __init__(self, nc):
@@ -74,8 +74,8 @@ class LegendreGaussRadau:
         self.cps = self.generate_collocation_points()
         self.xtao = np.concatenate([self.cps, [1]])
 
-        self.jacobiWeights = self.generate_jacobi_weights()
-        self.integralWeights = np.concatenate([self.jacobiWeights, [0]])
+        self.jacobi_weights = self.generate_jacobi_weights()
+        self.integral_weights = np.concatenate([self.jacobi_weights, [0]])
         self.PDM, self.PIM = self.generate_PIM_PDM()
 
     def generate_collocation_points(self):
@@ -108,13 +108,13 @@ class LegendreGaussRadau:
         PIM = np.linalg.inv(PDM[:, 1: self.nx])
         return PDM, PIM
 
-    def barycentricWeights(self):
-        ksi = (-1) ** np.arange(self.ncp) * np.sqrt((1 - self.cps) * self.integralWeights)
-        ksi[0] = 2 * np.sqrt(self.jacobiWeights[0])
+    def barycentric_weights(self):
+        ksi = (-1) ** np.arange(self.ncp) * np.sqrt((1 - self.cps) * self.integral_weights)
+        ksi[0] = 2 * np.sqrt(self.jacobi_weights[0])
         return ksi
 
 
-class flippedLegendreGaussRadau:
+class FlippedLegendreGaussRadau:
     """ flipped Legendre-Gauss-Radau Pseudospectral method
     Gauss-Radau xtao are roots of :math:`P_n(x) - P_{n-1}(x)`.
     Note that fLGR does not have weights"""
@@ -125,8 +125,8 @@ class flippedLegendreGaussRadau:
         self.cps = self.generate_collocation_points()
         self.xtao = np.concatenate([[-1], self.cps])
 
-        self.jacobiWeights = self.generate_jacobi_weights()
-        self.integralWeights = np.concatenate([[0], self.jacobiWeights])
+        self.jacobi_weights = self.generate_jacobi_weights()
+        self.integral_weights = np.concatenate([[0], self.jacobi_weights])
         self.PDM, self.PIM = self.generate_PIM_PDM()
 
     def generate_collocation_points(self):
@@ -149,7 +149,7 @@ class flippedLegendreGaussRadau:
         tao = self.cps
         ksi = np.zeros((self.ncp,))
         for i in range(self.ncp):
-            ksi[i] = (-1) ** i * np.sqrt((1 + tao[i]) * self.jacobiWeights[i])
+            ksi[i] = (-1) ** i * np.sqrt((1 + tao[i]) * self.jacobi_weights[i])
 
         D = np.zeros((self.ncp, self.ncp))
         for k in range(self.ncp):
@@ -172,7 +172,7 @@ class flippedLegendreGaussRadau:
         return PDMif, PIMnt
 
 
-class Legendre_Gauss_Lobatto:
+class LegendreGaussLobatto:
     """ TODO """
 
     def __init__(self, nc):

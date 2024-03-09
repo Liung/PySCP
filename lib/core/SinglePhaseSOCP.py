@@ -13,12 +13,12 @@ class SingPhaseSOCP:
     def __init__(self, iPhase, setup):
         self.iPhase = iPhase  # phase number
         self.phaseInfo = setup['model'].phases[iPhase]  # phase information
-        self.freeTime = self.phaseInfo.isFreeTime()  # free final time or fixed final time
+        self.freeTime = self.phaseInfo.is_free_time()  # free final time or fixed final time
         self.initialization = setup['initialization']
         self.algorithm = setup['algorithm']  # this is a reference object from MultiPhaseSOCP
 
         # mesh initialization
-        self.xdim, self.udim = self.phaseInfo.getDimension()
+        self.xdim, self.udim = self.phaseInfo.get_dimension()
         self.manager = PhaseManager(setup['model'], self.iPhase, setup['meshConfig'][iPhase])
         self.adaptive = setup['adaptive']
 
@@ -44,8 +44,8 @@ class SingPhaseSOCP:
         self.params.integralWeight4Control = self.manager.mesh.weights4Control
 
         self.params.refTraj = refTraj
-        self.manager.refreshMatrices(refTraj.state, refTraj.control, refTraj.sigma, self.phaseInfo.auxdata)
-        self.params.A_tilde, self.params.B_tilde, self.params.B2_tilde, self.params.F_tilde, self.params.R_tilde = self.manager.getApproximateMatrices()
+        self.manager.refresh_matrices(refTraj.state, refTraj.control, refTraj.sigma, self.phaseInfo.auxdata)
+        self.params.A_tilde, self.params.B_tilde, self.params.B2_tilde, self.params.F_tilde, self.params.R_tilde = self.manager.get_approximate_matrices()
         self.params.tr_state = (self.phaseInfo.state_bound[1] - self.phaseInfo.state_bound[0]) * self.algorithm.trState[self.iPhase] / 2
         self.params.tr_control = (self.phaseInfo.control_bound[1] - self.phaseInfo.control_bound[0]) * self.algorithm.trControl[self.iPhase] / 2
         if self.freeTime:
@@ -54,7 +54,7 @@ class SingPhaseSOCP:
     def updateVars(self):
         """ if mesh is adaptive, the cvxpy variables should be updated at every iteration """
         dv = PhaseData()
-        dv.setupDVs(self.manager, self.freeTime, sigma=self.phaseInfo.getAverageSigma(), nPath=self.phaseInfo.nPath, nBoundary=self.phaseInfo.nBoundary)  # TODO: 目前只能处理初始时间为0的情况
+        dv.setupDVs(self.manager, self.freeTime, sigma=self.phaseInfo.get_average_sigma(), nPath=self.phaseInfo.nPath, nBoundary=self.phaseInfo.nBoundary)  # TODO: 目前只能处理初始时间为0的情况
         return dv
 
     # ----------------------------------------- setup functions ----------------------------------------- #
@@ -71,20 +71,20 @@ class SingPhaseSOCP:
             cstrs += self.setuPathConstraints()
         if self.phaseInfo.nBoundary != 0:
             cstrs += self.setupBoundaryConstraints()
-        if self.algorithm.isTrustRegion():
+        if self.algorithm.is_trust_region():
             cstrs += self.setupTrustRegionConstraints()  # 信赖域约束, trust region constraints
 
-        if self.manager.isPseudospectral():
-            if self.manager.scheme == 'differential':  # 伪谱微分型式, pseudo-spectral differential form
+        if self.manager.is_pseudo_spectral():
+            if self.manager.scheme == 'differential':  # 伪谱微分型式, pseudo spectral differential form
                 cstrs += self.setupPSDifferentialDynamics()
-            elif self.manager.scheme == 'integral':  # 伪谱积分型式, pseudo-spectral integral form
+            elif self.manager.scheme == 'integral':  # 伪谱积分型式, pseudo spectral integral form
                 cstrs += self.setupPSIntegralDynamics()
-        elif self.manager.isSingleStep():
+        elif self.manager.is_single_step():
             # single step discretization only has integral form
             cstrs += self.setupSSDynamics()
-        elif self.manager.isHybrid():
+        elif self.manager.is_hybrid():
             cstrs += self.setupHybridDynamics()
-        elif self.manager.isTrapezoidal():
+        elif self.manager.is_trapezoidal():
             cstrs += self.setupTrapezoidalDynamics()
         return cstrs
 
@@ -100,18 +100,18 @@ class SingPhaseSOCP:
 
     def setupPSIntegralDynamics(self):
         """
-        Integral form for pseudo-spectral method
+        Integral form for pseudo spectral method
         """
         fx = []
         if self.freeTime:
             for k in range(self.params.ncp):
-                fx.append(self.params.A_tilde[k] @ self.dv.state[self.manager.mesh.cpState[k]]
+                fx.append(self.params.A_tilde[k] @ self.dv.state[self.manager.mesh.cp_state[k]]
                           + self.params.B_tilde[k] @ self.dv.control[k]
                           + self.params.F_tilde[k] * self.dv.sigma
                           + self.params.R_tilde[k])
         else:
             for k in range(self.params.ncp):
-                fx.append(self.params.A_tilde[k] @ self.dv.state[self.manager.mesh.cpState[k]]
+                fx.append(self.params.A_tilde[k] @ self.dv.state[self.manager.mesh.cp_state[k]]
                           + self.params.B_tilde[k] @ self.dv.control[k]
                           + self.params.F_tilde[k] * self.params.refTraj.sigma
                           + self.params.R_tilde[k])
@@ -121,13 +121,13 @@ class SingPhaseSOCP:
 
     def setupPSDifferentialDynamics(self):
         """
-        Differential form for pseudo-spectral method
+        Differential form for pseudo spectral method
         """
         cstrns = []
         if self.freeTime:
             for k in range(self.params.ncp):
                 cstrns += [cvx.abs(self.manager.mesh.PDM[k] @ self.dv.state -
-                                   (self.params.A_tilde[k] @ self.dv.state[self.manager.mesh.cpState[k]]
+                                   (self.params.A_tilde[k] @ self.dv.state[self.manager.mesh.cp_state[k]]
                                     + self.params.B_tilde[k] @ self.dv.control[k]
                                     + self.params.F_tilde[k] * self.dv.sigma
                                     + self.params.R_tilde[k]))
@@ -135,7 +135,7 @@ class SingPhaseSOCP:
         else:
             for k in range(self.params.ncp):
                 cstrns += [cvx.abs(self.manager.mesh.PDM[k] @ self.dv.state
-                                   - (self.params.A_tilde[k] @ self.dv.state[self.manager.mesh.cpState[k]]
+                                   - (self.params.A_tilde[k] @ self.dv.state[self.manager.mesh.cp_state[k]]
                                       + self.params.B_tilde[k] @ self.dv.control[k]
                                       + self.params.F_tilde[k] * self.params.refTraj.sigma
                                       + self.params.R_tilde[k]))
@@ -184,7 +184,7 @@ class SingPhaseSOCP:
 
     def setupHybridDynamics(self):
         """
-        Integral form for pseudo-spectral method
+        Integral form for pseudo spectral method
         """
         cstrns = []
         if self.freeTime:
@@ -194,7 +194,7 @@ class SingPhaseSOCP:
                 segUk = self.dv.control[self.manager.mesh.segControlIndex[iseg]]
 
                 if self.manager.mesh.segNames[iseg] == 'RK':
-                    for k in range(self.manager.mesh.segDegrees[iseg]):
+                    for k in range(self.manager.mesh.seg_degrees[iseg]):
                         cstrns += [cvx.abs(segXk[k + 1]
                                            - (self.params.A_tilde[imat] @ segXk[k]
                                               + self.params.B_tilde[imat] @ segUk[k]
@@ -206,7 +206,7 @@ class SingPhaseSOCP:
                 else:
                     sfx = []
                     startIndex = imat
-                    for k in range(self.manager.mesh.segDegrees[iseg]):
+                    for k in range(self.manager.mesh.seg_degrees[iseg]):
                         sfx.append(self.params.A_tilde[imat] @ segXk[k + 1]
                                    + self.params.B_tilde[imat] @ segUk[k]
                                    + self.params.F_tilde[imat] * self.dv.sigma
@@ -220,7 +220,7 @@ class SingPhaseSOCP:
                     cstrns += [cvx.abs(segXk[PIMXfIndex] - PIMedX) <= self.dv.nuDynamics[startIndex:endIndex]]
         else:
             for k in range(self.params.ncp):
-                cstrns.append(self.params.A_tilde[k] @ self.dv.state[self.manager.mesh.cpState[k]]
+                cstrns.append(self.params.A_tilde[k] @ self.dv.state[self.manager.mesh.cp_state[k]]
                               + self.params.B_tilde[k] @ self.dv.control[k]
                               + self.params.F_tilde[k] * self.params.refTraj.sigma
                               + self.params.R_tilde[k])
@@ -262,7 +262,7 @@ class SingPhaseSOCP:
     def setuPathConstraints(self):
         """ path Constraints """
         cstr = []
-        path = self.phaseInfo.pathFunc(self.dv, self.getRefTrajectory(), self.manager.mesh.cpState, self.manager.mesh.cpControl, self.phaseInfo.auxdata)
+        path = self.phaseInfo.pathFunc(self.dv, self.getRefTrajectory(), self.manager.mesh.cp_state, self.manager.mesh.cp_control, self.phaseInfo.auxdata)
         for ic in range(self.phaseInfo.nPath):
             cstr += [path[ic] <= self.dv.nuPath[:, ic]]
         return cstr
@@ -371,7 +371,7 @@ class SingPhaseSOCP:
         return refTraj
 
     def getNewTrajectory(self):
-        newTraj = self.dv.getPhaseValues()
+        newTraj = self.dv.get_phase_values()
         return newTraj
 
     def getDynamicsViolation(self, phaseTraj):
@@ -380,7 +380,7 @@ class SingPhaseSOCP:
         :param phaseTraj:
         :return:
         """
-        pointcost = self.manager.getPointwiseDynamicsCost(phaseTraj.state, phaseTraj.control, phaseTraj.sigma, self.phaseInfo.auxdata)
+        pointcost = self.manager.get_pointwise_dynamics_cost(phaseTraj.state, phaseTraj.control, phaseTraj.sigma, self.phaseInfo.auxdata)
         return pointcost
 
     def getPropagatedTrajectory(self, refTraj, continuous=False):
@@ -458,7 +458,7 @@ class SingPhaseSOCP:
         :return:
         """
         if self.phaseInfo.nPath:
-            nu = self.phaseInfo.pathFunc(phaseTraj, self.getRefTrajectory(), self.manager.mesh.cpState, self.manager.mesh.cpControl, self.phaseInfo.auxdata)
+            nu = self.phaseInfo.pathFunc(phaseTraj, self.getRefTrajectory(), self.manager.mesh.cp_state, self.manager.mesh.cp_control, self.phaseInfo.auxdata)
             nu = np.clip(nu, 0., None)
             cost = np.max(np.linalg.norm(nu, ord=1, axis=1))
             # cost = np.sum(np.linalg.norm(nu, axis=1))
@@ -592,5 +592,5 @@ class SingPhaseSOCP:
         #         new_intervals.append(intervals[seg])
         #
         # if self.remesh_flag:  # 更新网格
-        #     self.meshConfig['segFractions'] = [1]  # TODO
+        #     self.meshConfig['seg_fractions'] = [1]  # TODO
         #     self.manager = PhaseManager(self.meshConfig)

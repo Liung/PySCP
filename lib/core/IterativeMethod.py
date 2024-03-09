@@ -32,13 +32,13 @@ class IterativeMethod:
         self.allJTrace = []
         self.fakeAllJTrace = []
 
-    def isTrustRegion(self):
+    def is_trust_region(self):
         if self.method == 'trust-region':
             return True
         else:
             return False
 
-    def setParams(self, setup):
+    def set_params(self, setup):
         for key, value in setup.items():
             if hasattr(self, key):
                 setattr(self, key, value)
@@ -67,41 +67,42 @@ class TrustRegion(IterativeMethod):
         self.ratios = [1, 1]
 
         # user define
-        self.setParams(setup)
+        self.set_params(setup)
 
-    def initJTrace(self, J):
+    def init_jtrace(self, J):
         self.JTrace.append(J)
         self.allJTrace.append(J)
 
-    def TrustRegionAdaption(self, J):
-        delta_J = self.JTrace[-1] - J
+    def trust_region_adaption(self, J):
+        delta_j = self.JTrace[-1] - J
         self.allJTrace.append(J)
         self.JTrace.append(J)
 
         if len(self.JTrace) > 2:
             r = (1 - np.abs((self.JTrace[-1] - self.JTrace[-2]) / self.JTrace[-2])) * self.ratios[-1]
             self.ratios.append(r)
-        if delta_J < 0:
-            self.adaptTrustRegion(self.ratio_shrink)
+        if delta_j < 0:
+            self.adapt_trust_region(self.ratio_shrink)
             return False
         return True
 
-    def adaptTrustRegion(self, ratio):
+    def adapt_trust_region(self, ratio):
         self.ratioHistory.append(ratio)
         for iPhase in range(self.phaseNum):
             self.trState[iPhase] = self.trState[iPhase] * ratio
             # self.trControl[iPhase] = self.trControl[iPhase] * ratio
             self.trSigma[iPhase] = self.trSigma[iPhase] * ratio
 
-    def setupTrustRegion(self, phases):
+    def setup_trust_region(self, phases):
         self.phaseNum = len(phases)
-        """ different phases may have different state variables or control variables, so the trust region must be list instead of ndarray """
+        """different phases may have different state variables or control variables, so the trust region must be list 
+        instead of ndarray"""
         for iPhase, phase in enumerate(phases):
             self.trState.append(phase.trState.reshape((1, -1)))
             self.trControl.append(phase.trControl.reshape((1, -1)))
             self.trSigma.append(phase.trSigma)
 
-    def initCost(self, realJ, fakeJ):
+    def init_cost(self, realJ, fakeJ):
         self.JTrace.append(realJ)
         self.fakeJTrace.append(fakeJ)
 
@@ -122,9 +123,9 @@ class TrustRegionLineSearch(IterativeMethod):
         self.ratioHistory = []
 
         # user define
-        self.setParams(setup)
+        self.set_params(setup)
 
-    def TrustRegionAdaption(self, realJ, fakeJ):
+    def trust_region_adaption(self, realJ, fakeJ):
         if len(self.JTrace) == 0:
             self.JTrace.append(realJ)
             self.fakeJTrace.append(fakeJ)
@@ -141,36 +142,37 @@ class TrustRegionLineSearch(IterativeMethod):
         if rho < self.thresh_reject or delta_J < 0:
             print('reject, shrink', self.trSigma)
             # 拒绝该结果
-            self.adaptTrustRegion(self.ratio_shrink)
+            self.adapt_trust_region(self.ratio_shrink)
             return False
         else:
             self.JTrace.append(realJ)
             self.fakeJTrace.append(fakeJ)
             if rho >= self.thresh_expand:
-                self.adaptTrustRegion(self.ratio_expand)
+                self.adapt_trust_region(self.ratio_expand)
                 print('accept, {:.6f}, expand'.format(rho))
             elif rho < self.thresh_shrink:
-                self.adaptTrustRegion(self.ratio_shrink)
+                self.adapt_trust_region(self.ratio_shrink)
                 print('accept, {:.6f}, shrink'.format(rho))
             else:
                 print('accept, {:.6f}, unchanged'.format(rho))
             return True
 
-    def adaptTrustRegion(self, ratio):
+    def adapt_trust_region(self, ratio):
         self.ratioHistory.append(ratio)
         for iPhase in range(self.phaseNum):
             # self.trState[iPhase] = self.trState[iPhase] * ratio
             # self.trControl[iPhase] = self.trControl[iPhase] * ratio
             self.trSigma[iPhase] = self.trSigma[iPhase] * ratio
 
-    def setupTrustRegion(self, phases):
+    def setup_trust_region(self, phases):
         self.phaseNum = len(phases)
-        """ different phases may have different state variables or control variables, so the trust region must be list instead of ndarray """
+        """different phases may have different state variables or control variables, so the trust region must be list 
+        instead of ndarray"""
         for iPhase, phase in enumerate(phases):
             self.trState.append(phase.trState.reshape((1, -1)))
             self.trControl.append(phase.trControl.reshape((1, -1)))
             self.trSigma.append(phase.trSigma)
 
-    def initCost(self, realJ, fakeJ):
+    def init_cost(self, realJ, fakeJ):
         self.JTrace.append(realJ)
         self.fakeJTrace.append(fakeJ)
